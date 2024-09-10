@@ -1,5 +1,5 @@
 from itertools import groupby
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Tuple
 from tree_sitter import Language, Node, Parser, Query
 import tree_sitter_java as tsjava
 from cldk.models.treesitter import Captures
@@ -442,3 +442,77 @@ class JavaSitter:
         prettified_pruned_code = "\n".join(new_source_code_as_list)
 
         return prettified_pruned_code.strip()
+
+
+    
+    def rename_symbols(self, java_code: List[bytes], symbol_rename_table: Dict[str, str]) -> List[bytes]:
+        """
+        Rename the src code using the given symbol rename table
+
+        Parameters
+        ----------
+        java_code: List[bytes]
+            the code to be renamed.
+
+        symbol_rename_table: Dict[str, str]
+            the symbol rename table
+            
+        Returns
+        -------
+        List[bytes]
+            Renamed Java code.
+        """
+        tree = self.parser.parse(bytes(java_code, "utf8"))
+        root_node = tree.root_node
+        edits = []
+
+        def traverse(node):
+            if node.type == 'identifier':
+                identifier = node.text.decode('utf8')
+                if identifier in symbol_rename_table:
+                    start = node.start_byte
+                    end = node.end_byte
+                    replacement = symbol_rename_table[identifier]
+                    edits.append((start, end, replacement))
+
+            for child in node.children:
+                traverse(child)
+
+        traverse(root_node)
+
+        edits.sort(reverse=True, key=lambda x: x[0])
+        for start, end, replacement in edits:
+            java_code = java_code[:start] + replacement + java_code[end:]
+        
+        return java_code
+    
+    def rename_symbols_in_java_code(self, symbols: List[str], java_codes: List[bytes]) -> Tuple[List[bytes], Dict[str, str]]:
+        """
+        This function creates a rename symbol mapping table for all unique symbols in a given set of Java codes
+        and renames those symbols as specified in the mapping table.
+
+        Parameters
+        ----------
+        symbols : List[str]
+            The list of symbols to be renamed in the java code.
+        java_codes : List[bytes]
+            The java code snippets to be processed.
+
+        Returns
+        -------
+        Tuple[List[bytes], Dict[str, str]]
+            a tuple of list of renamed java codes and renamed symbol mapping table.
+
+        """
+        renamed_java_codes: List[bytes] = []
+
+        symbol_rename_table: Dict[str, str] = {key: f'__k{i}__' for i, key in enumerate(symbols)}
+
+        for i, java_code in enumerate(java_codes):
+            new_java_code = self.rename_symbols(java_code, symbol_rename_table)
+            renamed_java_codes.append(new_java_code)
+
+        return renamed_java_codes, symbol_rename_table
+    
+
+
