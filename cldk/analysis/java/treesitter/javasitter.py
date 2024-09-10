@@ -514,5 +514,29 @@ class JavaSitter:
 
         return renamed_java_codes, symbol_rename_table
     
+    def extract_unique_symbols_for_renaming(self, java_codes: List[bytes]) -> List[str]:
+        """
+        Extract the unique set of union of symbols from all the Java codes specified.
+
+        Parameters
+        ----------
+        java_codes : List[bytes]
+            The java code snippets to be processed.
+            
+        Returns
+        -------
+        List[str]
+            List of unique symbols in the Java codes.
+        """
+        java_code_combined = ""
+
+        for i, java_code in enumerate(java_codes):
+            java_code_combined += java_codes[i] + "\n"  # Add a newline in case the last line is a comment
+
+        symbols = self.extract_symbols_for_renaming(java_code_combined)
+        unique_symbols = sorted(set(symbols))  # get unique set of symbols
+
+        return unique_symbols
+    
 
 
