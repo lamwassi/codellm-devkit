@@ -514,6 +514,53 @@ class JavaSitter:
 
         return renamed_java_codes, symbol_rename_table
     
+    def extract_symbols_for_renaming(self, source_code: List[bytes]) -> List[str]:
+        """
+        Extracts symbols for renaming in Java source_code.
+
+        Parameters
+        ----------
+        source_code: List[bytes]
+            source code to be renamed
+            
+        Returns
+        -------
+        List[str]:
+            an array of symbols
+        """
+        tree = self.parser.parse(bytes(source_code, "utf8"))
+        root_node = tree.root_node
+
+        symbols = []
+
+        query = self.language.query("""
+            (identifier) @name
+            (class_declaration
+                (modifiers
+                    (annotation
+                        name: (identifier) @class.annotation)
+                    )
+                )
+            (field_declaration
+                (modifiers
+                    (annotation
+                    name: (identifier) @field.annotation)
+                )
+            )
+            (method_declaration
+                (modifiers
+                    (marker_annotation
+                    name: (identifier) @method.annotation)
+                )
+            )
+        """)
+
+        captures = query.captures(root_node)
+        for node, capture_name in captures:
+            symbols.append(node.text.decode('utf8'))
+
+        return symbols
+    
     def extract_unique_symbols_for_renaming(self, java_codes: List[bytes]) -> List[str]:
         """
         Extract the unique set of union of symbols from all the Java codes specified.
