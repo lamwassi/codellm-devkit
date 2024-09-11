@@ -514,6 +514,37 @@ class JavaSitter:
 
         return renamed_java_codes, symbol_rename_table
     
+    def restore_symbols_in_renamed_code_text(self, java_codes_texts: List[bytes], symbol_rename_table: Dict[str, str]) -> List[bytes]:
+        """
+        Restores the original symbols in the list of Java codes (or texts) using the given symbol rename table.
+
+        Parameters
+        ----------
+        java_codes_texts: List[bytes]
+            The Java codes (or text) with renamed symbols.
+
+        symbol_rename_table : Dict[str, str]
+            A dictionary containing the mapping of renamed symbols to their original symbols.
+
+        Returns
+        -------
+        List[bytes]
+            The Java codes or texts with the original symbols restored.
+        """
+        symbol_rename_table_for_restore: Dict[str, str] = {}
+
+        for k, v in symbol_rename_table.items():
+            symbol_rename_table_for_restore[v] = k  # Reverse the mapping for restoring original symbols
+
+        restored_java_codes: List[bytes] = []
+        for i, java_code_text in enumerate(java_codes_texts):
+            restored_java_code = java_code_text
+            for renamed, original in symbol_rename_table_for_restore.items():
+                restored_java_code = restored_java_code.replace(renamed, original)
+            restored_java_codes.append(restored_java_code)
+
+        return restored_java_codes
+    
     def extract_symbols_for_renaming(self, source_code: List[bytes]) -> List[str]:
         """
         Extracts symbols for renaming in Java source_code.
